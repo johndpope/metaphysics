@@ -3,6 +3,11 @@ describe('Gene', () => {
     const Gene = schema.__get__('Gene');
     const filterArtworks = Gene.__get__('filterArtworks');
 
+    // If this test fails because it's making a gravity request to /gene/x, it's
+    // because the AST checks to find out which nodes we're requesting
+    // is not working correctly. This test is to make sure we don't
+    // request to gravity.
+
     beforeEach(() => {
       const gravity = sinon.stub();
       gravity.with = sinon.stub().returns(gravity);
@@ -33,7 +38,7 @@ describe('Gene', () => {
       `;
 
       return runQuery(query).then(({ gene: { filtered_artworks: { hits } } }) => {
-        expect(hits).to.eql([{ id: 'oseberg-norway-queens-ship' }]);
+        expect(hits).toEqual([{ id: 'oseberg-norway-queens-ship' }]);
       });
     });
   });
@@ -82,7 +87,7 @@ describe('Gene', () => {
       `;
 
       return runQuery(query).then(({ gene: { filtered_artworks: { hits } } }) => {
-        expect(hits).to.eql([{ id: 'oseberg-norway-queens-ship' }]);
+        expect(hits).toEqual([{ id: 'oseberg-norway-queens-ship' }]);
       });
     });
   });

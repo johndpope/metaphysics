@@ -21,7 +21,7 @@ import PartnerShow from '../partner_show';
 import PartnerShowSorts from '../sorts/partner_show_sorts';
 import Partner from '../partner';
 import Context from './context';
-import Meta from './meta';
+import Meta, { artistNames } from './meta';
 import Highlight from './highlight';
 import Dimensions from '../dimensions';
 import EditionSet from '../edition_set';
@@ -38,6 +38,14 @@ import {
   GraphQLList,
   GraphQLInt,
 } from 'graphql';
+
+const is_inquireable = ({ inquireable, acquireable }) => {
+  return (inquireable && !acquireable);
+};
+
+const is_price_range = (price) => {
+  return new RegExp(/\-/).test(price);
+};
 
 let Artwork;
 
@@ -145,10 +153,15 @@ const ArtworkType = new GraphQLObjectType({
           );
         },
       },
+      is_purchasable: {
+        type: GraphQLBoolean,
+        description: 'True for inquireable artworks that have an exact price.',
+        resolve: (artwork) => (is_inquireable(artwork) && !is_price_range(artwork.price)),
+      },
       is_inquireable: {
         type: GraphQLBoolean,
         description: 'Do we want to encourage inquiries on this work?',
-        resolve: ({ inquireable, acquireable }) => inquireable && !acquireable,
+        resolve: (artwork) => is_inquireable(artwork),
       },
       is_contactable: {
         type: GraphQLBoolean,
@@ -196,7 +209,7 @@ const ArtworkType = new GraphQLObjectType({
         description: 'Is this artwork part of an auction that is currently running?',
         resolve: ({ sale_ids }) => {
           if (sale_ids && sale_ids.length > 0) {
-            return gravity('sales', { id: sale_ids, is_auction: true, auction_state: 'open' })
+            return gravity('sales', { id: sale_ids, is_auction: true, live: true })
               .then(sales => {
                 return sales.length > 0;
               });
@@ -265,6 +278,10 @@ const ArtworkType = new GraphQLObjectType({
         type: GraphQLBoolean,
         resolve: ({ price_hidden }) => price_hidden,
       },
+      is_price_range: {
+        type: GraphQLBoolean,
+        resolve: (artwork) => is_price_range(artwork.price),
+      },
       availability: {
         type: GraphQLString,
       },
@@ -285,6 +302,9 @@ const ArtworkType = new GraphQLObjectType({
           return gravity(`artist/${artist.id}`)
             .catch(() => null);
         },
+      },
+      price: {
+        type: GraphQLString,
       },
       contact_label: {
         type: GraphQLString,
@@ -309,6 +329,10 @@ const ArtworkType = new GraphQLObjectType({
             artists.map(artist => gravity(`/artist/${artist.id}`))
           ).catch(() => []);
         },
+      },
+      artist_names: {
+        type: GraphQLString,
+        resolve: (artwork) => artistNames(artwork),
       },
       dimensions: Dimensions,
       image: {

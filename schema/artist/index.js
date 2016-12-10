@@ -65,6 +65,9 @@ const ShowField = {
     is_reference: {
       type: GraphQLBoolean,
     },
+    visible_to_public: {
+      type: GraphQLBoolean,
+    },
     sort: PartnerShowSorts,
   },
   resolve: ({ id }, options) => {
@@ -149,10 +152,14 @@ const ArtistType = new GraphQLObjectType({
       },
       formatted_nationality_and_birthday: {
         type: GraphQLString,
-        description: 'A string of the form "Nationality, Birthday"',
-        resolve: ({ birthday, nationality }) => {
+        description: 'A string of the form "Nationality, Birthday (or Birthday-Deathday)"',
+        resolve: ({ birthday, nationality, deathday }) => {
           let formatted_bday = (!isNaN(birthday) && birthday) ? 'b. ' + birthday : birthday;
           formatted_bday = formatted_bday && formatted_bday.replace(/born/i, 'b.');
+
+          if ((!isNaN(deathday) && deathday)) {
+            formatted_bday = `${formatted_bday.replace('b. ', '')}–${deathday.match(/\d+/)}`;
+          }
 
           if (nationality && formatted_bday) {
             return nationality + ', ' + formatted_bday;
@@ -222,7 +229,7 @@ const ArtistType = new GraphQLObjectType({
             if (partner_artists && partner_artists.length) {
               const { biography, partner } = first(partner_artists);
               return {
-                text: biography,
+                text: formatMarkdownValue(biography, format),
                 credit: `Submitted by ${partner.name}`,
                 partner_id: partner.id,
               };
@@ -381,6 +388,7 @@ const ArtistType = new GraphQLObjectType({
               highest_tier: true,
               solo_show: true,
               at_a_fair: false,
+              visible_to_public: false,
               size: options.size,
             }),
             // Highest tier solo gallery shows
@@ -392,6 +400,7 @@ const ArtistType = new GraphQLObjectType({
               highest_tier: true,
               solo_show: true,
               at_a_fair: false,
+              visible_to_public: false,
               size: options.size,
             }),
             // Highest tier group institutional shows
@@ -403,6 +412,7 @@ const ArtistType = new GraphQLObjectType({
               highest_tier: true,
               solo_show: false,
               at_a_fair: false,
+              visible_to_public: false,
               size: options.size,
             }),
             // Highest tier group gallery shows
@@ -414,6 +424,7 @@ const ArtistType = new GraphQLObjectType({
               highest_tier: true,
               solo_show: false,
               at_a_fair: false,
+              visible_to_public: false,
               size: options.size,
             }),
             // Lower tier solo institutional shows
@@ -425,6 +436,7 @@ const ArtistType = new GraphQLObjectType({
               highest_tier: false,
               solo_show: true,
               at_a_fair: false,
+              visible_to_public: false,
               size: options.size,
             }),
             // Lower tier solo gallery shows
@@ -436,6 +448,7 @@ const ArtistType = new GraphQLObjectType({
               highest_tier: false,
               solo_show: true,
               at_a_fair: false,
+              visible_to_public: false,
               size: options.size,
             }),
             // Lower tier group institutional shows
@@ -447,6 +460,7 @@ const ArtistType = new GraphQLObjectType({
               highest_tier: false,
               solo_show: false,
               at_a_fair: false,
+              visible_to_public: false,
               size: options.size,
             }),
             // Lower tier group gallery shows
@@ -458,6 +472,7 @@ const ArtistType = new GraphQLObjectType({
               is_reference: true,
               solo_show: false,
               at_a_fair: false,
+              visible_to_public: false,
               size: options.size,
             }),
             // Fair booths
@@ -465,6 +480,7 @@ const ArtistType = new GraphQLObjectType({
               artist_id: id,
               sort: '-end_at',
               at_a_fair: true,
+              visible_to_public: false,
               size: options.size,
             }),
           ]).then(allShows => take(concat(...allShows), options.size));
